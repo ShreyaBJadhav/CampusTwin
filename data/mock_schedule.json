@@ -1,0 +1,14 @@
+[
+  {"class_id": "class-001", "room_id": "classroom-101", "student_count": 12, "type": "classroom"},
+  {"class_id": "class-002", "room_id": "classroom-101", "student_count": 28, "type": "classroom"},
+  {"class_id": "class-003", "room_id": "classroom-101", "student_count": 35, "type": "classroom"},
+  {"class_id": "class-004", "room_id": "classroom-102", "student_count": 24, "type": "classroom"},
+  {"class_id": "class-005", "room_id": "classroom-103", "student_count": 38, "type": "classroom"},
+  {"class_id": "lab-001", "room_id": "lab-201", "student_count": 8, "type": "lab"},
+  {"class_id": "lab-002", "room_id": "lab-202", "student_count": 18, "type": "lab"},
+  {"class_id": "lab-003", "room_id": "lab-203", "student_count": 20, "type": "lab"},
+  {"class_id": "library-001", "room_id": "library-main", "student_count": 36, "type": "library"},
+  {"class_id": "library-002", "room_id": "library-study", "student_count": 60, "type": "library"},
+  {"class_id": "admin-001", "room_id": "admin-office", "student_count": 24, "type": "admin"},
+  {"class_id": "admin-002", "room_id": "admin-meeting", "student_count": 15, "type": "admin"}
+]

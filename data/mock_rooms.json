@@ -1,0 +1,14 @@
+[
+  {"id": "classroom-101", "building_id": "academic-east", "type": "classroom", "capacity": 40, "occupancy": 12},
+  {"id": "classroom-102", "building_id": "academic-east", "type": "classroom", "capacity": 40, "occupancy": 24},
+  {"id": "classroom-103", "building_id": "academic-west", "type": "classroom", "capacity": 40, "occupancy": 38},
+  {"id": "lab-201", "building_id": "science-east", "type": "lab", "capacity": 24, "occupancy": 8},
+  {"id": "lab-202", "building_id": "science-east", "type": "lab", "capacity": 24, "occupancy": 18},
+  {"id": "lab-203", "building_id": "science-west", "type": "lab", "capacity": 24, "occupancy": 20},
+  {"id": "library-main", "building_id": "library-building", "type": "library", "capacity": 120, "occupancy": 36},
+  {"id": "library-study", "building_id": "library-building", "type": "library", "capacity": 80, "occupancy": 60},
+  {"id": "library-quiet", "building_id": "library-building", "type": "library", "capacity": 30, "occupancy": 28},
+  {"id": "admin-reception", "building_id": "administration", "type": "admin", "capacity": 20, "occupancy": 6},
+  {"id": "admin-office", "building_id": "administration", "type": "admin", "capacity": 32, "occupancy": 24},
+  {"id": "admin-meeting", "building_id": "administration", "type": "admin", "capacity": 16, "occupancy": 15}
+]
