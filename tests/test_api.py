@@ -99,7 +99,23 @@ def test_alternative_room_missing_required_field_returns_400():
     )
 
     assert response.status_code == 400
-    assert "required_capacity" in response.json()["detail"]
+    assert response.json() == {
+        "detail": "required_capacity: Field required",
+    }
+
+
+def test_alternative_room_unknown_room_returns_404():
+    response = client.post(
+        "/allocation/alternative",
+        json={
+            "unavailable_room_id": "missing-room",
+            "required_capacity": 35,
+            "room_type": "classroom",
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "room ID 'missing-room' was not found"}
 
 
 def test_cors_allows_role_a_dev_origin():

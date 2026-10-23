@@ -52,7 +52,12 @@ async def invalid_input_error_handler(_, error: ValueError | TypeError) -> JSONR
 async def request_validation_error_handler(
     _, error: RequestValidationError
 ) -> JSONResponse:
-    return JSONResponse(status_code=400, content={"detail": str(error)})
+    details = "; ".join(
+        f"{'.'.join(str(part) for part in item['loc'] if part != 'body')}: "
+        f"{item['msg']}"
+        for item in error.errors()
+    )
+    return JSONResponse(status_code=400, content={"detail": details})
 
 
 @app.get("/rooms/{room_id}/utilization")
@@ -84,10 +89,15 @@ def simulate_what_if(request: WhatIfRequest) -> dict:
 
 @app.post("/allocation/alternative")
 def alternative_room(request: AlternativeRoomRequest) -> dict | None:
+    rooms = data_source.get_rooms()
+    if not any(room.get("id") == request.unavailable_room_id for room in rooms):
+        raise NotFoundError(
+            f"room ID {request.unavailable_room_id!r} was not found"
+        )
     return find_alternative_room(
         request.unavailable_room_id,
         request.required_capacity,
         request.room_type,
-        data_source.get_rooms(),
+        rooms,
         excluded_room_ids=set(request.excluded_room_ids),
     )

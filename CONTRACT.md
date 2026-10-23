@@ -304,3 +304,141 @@ get_dashboard_summary(rooms)
 - Reallocation first avoids rooms whose utilization status is `overloaded`.
   If no other suitable room exists, it retries while excluding only already
   assigned rooms, so an overloaded room may still be used.
+
+## HTTP API
+
+The API base URL is `http://localhost:8000`. Interactive OpenAPI documentation
+is available at `http://localhost:8000/docs`. The success responses shown
+below were captured by calling the running app through FastAPI `TestClient`.
+Errors use `{"detail": "..."}`.
+
+### `GET /rooms/{room_id}/utilization`
+
+- **Path parameter:** `room_id` (`str`, required).
+- **Request body:** none.
+- **Success (`200`):** result of `calculate_utilization`.
+
+TestClient response:
+
+```json
+{"percentage":30.0,"status":"low"}
+```
+
+- **`404` unknown room ID:**
+
+```json
+{"detail":"room ID 'missing-room' was not found"}
+```
+
+- **`400` invalid room utilization data (example: boolean capacity):**
+
+```json
+{"detail":"capacity must be a number"}
+```
+
+### `GET /dashboard/summary`
+
+- **Path parameters:** none.
+- **Request body:** none.
+- **Success (`200`):** dashboard summary as described by
+  `get_dashboard_summary`.
+
+TestClient response:
+
+```json
+{"total_rooms":12,"total_buildings":6,"status_counts":{"low":4,"normal":4,"high":1,"overloaded":3},"overloaded_rooms":[{"id":"classroom-103","building_id":"academic-west","type":"classroom","capacity":40,"occupancy":38,"percentage":95.0,"status":"overloaded"},{"id":"library-quiet","building_id":"library-building","type":"library","capacity":30,"occupancy":28,"percentage":93.33333333333333,"status":"overloaded"},{"id":"admin-meeting","building_id":"administration","type":"admin","capacity":16,"occupancy":15,"percentage":93.75,"status":"overloaded"}],"skipped_rooms":[]}
+```
+
+- **`400` if a `ValueError` or `TypeError` escapes the data source/API call:**
+
+```json
+{"detail":"invalid data source"}
+```
+
+Malformed room utilization records are normally skipped by
+`get_dashboard_summary`; this example represents an error raised by the data
+source rather than an individual malformed room.
+
+### `POST /simulate/what-if`
+
+- **Path parameters:** none.
+- **Request body:** JSON object with:
+  - `unavailable_room_id` (`str`, optional and nullable)
+  - `unavailable_building_id` (`str`, optional and nullable)
+- Exactly one of the two IDs must have a non-null value.
+- **Success (`200`):** simulation result.
+
+TestClient request:
+
+```json
+{"unavailable_room_id":"classroom-101"}
+```
+
+TestClient response:
+
+```json
+{"affected_count":3,"unavailable_room_ids":["classroom-101"],"reallocated":[{"class_id":"class-001","new_room_id":"classroom-102"},{"class_id":"class-002","new_room_id":"classroom-103"}],"failed":[{"class_id":"class-003","reason":"no suitable room"}]}
+```
+
+- **`404` unknown room or building ID (building example):**
+
+```json
+{"detail":"building ID 'missing-building' was not found"}
+```
+
+- **`400` if neither or both IDs are supplied:**
+
+```json
+{"detail":"provide exactly one of unavailable_room_id or unavailable_building_id"}
+```
+
+Invalid request body fields are also mapped to `400`.
+
+### `POST /allocation/alternative`
+
+- **Path parameters:** none.
+- **Request body:** JSON object with:
+  - `unavailable_room_id` (`str`, required)
+  - `required_capacity` (`int`, required)
+  - `room_type` (`str`, required)
+  - `excluded_room_ids` (`list[str]`, optional; defaults to `[]`)
+- **Success (`200`):** the matching room record, or JSON `null` if no room
+  qualifies.
+
+TestClient request:
+
+```json
+{"unavailable_room_id":"classroom-101","required_capacity":35,"room_type":"classroom","excluded_room_ids":["classroom-102"]}
+```
+
+TestClient response:
+
+```json
+{"id":"classroom-103","building_id":"academic-west","type":"classroom","capacity":40,"occupancy":38}
+```
+
+The no-match success response is:
+
+```json
+null
+```
+
+- **`404` if `unavailable_room_id` does not identify a room:**
+
+```json
+{"detail":"room ID 'missing-room' was not found"}
+```
+
+- **`400` request validation example (missing `required_capacity`):**
+
+```json
+{"detail":"required_capacity: Field required"}
+```
+
+### HTTP error mapping
+
+Unknown room/building IDs return `404` with `NotFoundError` details. Other
+invalid input, including request validation errors, maps to `400`. For
+`/dashboard/summary`, the shown `400` applies only if a `ValueError` or
+`TypeError` escapes the source/API call; malformed room utilization records
+are handled as skipped records by the dashboard logic.
