@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+
+:root {
+  font-family: 'Manrope', 'Trebuchet MS', sans-serif;
+  color: #e4eae5;
+  background: #111716;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-weight: 400;
+
+  --bg: #111716;
+  --surface: #171f1d;
+  --surface-raised: #1c2623;
+  --line: #2b3732;
+  --line-soft: rgba(149, 170, 156, 0.14);
+  --text: #e4eae5;
+  --muted: #8c9a91;
+  --subtle: #65736b;
+  --accent: #62cfdf;
+  --mono: 'DM Mono', Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { min-width: 280px; min-height: 100%; background: var(--bg); }
+
+body {
+  min-width: 280px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 17% -12%, rgba(74, 103, 83, 0.13), transparent 40%),
+    linear-gradient(180deg, #141b19 0%, #101615 80%);
+}
+
+body, button, select { font-family: 'Manrope', 'Trebuchet MS', sans-serif; }
+button, select { color: inherit; }
+button { font-size: inherit; }
+button:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid #d3df99; outline-offset: 3px; }
+button:disabled { cursor: not-allowed; opacity: 0.52; }
+::selection { color: #121815; background: #c4cc86; }
+
+#root { min-height: 100vh; }

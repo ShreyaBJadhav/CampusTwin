@@ -1,0 +1,15 @@
+[
+  { "class_id": "class-east-lecture-a", "room_id": "classroom-101", "student_count": 32, "type": "classroom" },
+  { "class_id": "class-east-lab-a", "room_id": "lab-101", "student_count": 27, "type": "lab" },
+  { "class_id": "class-east-lecture-b", "room_id": "classroom-101", "student_count": 39, "type": "classroom" },
+  { "class_id": "class-east-lab-b", "room_id": "lab-101", "student_count": 29, "type": "lab" },
+  { "class_id": "class-west-lecture", "room_id": "classroom-201", "student_count": 44, "type": "classroom" },
+  { "class_id": "class-west-lab", "room_id": "lab-201", "student_count": 18, "type": "lab" },
+  { "class_id": "class-science-lecture", "room_id": "classroom-301", "student_count": 31, "type": "classroom" },
+  { "class_id": "class-science-lab", "room_id": "lab-301", "student_count": 30, "type": "lab" },
+  { "class_id": "class-design-studio", "room_id": "classroom-401", "student_count": 34, "type": "classroom" },
+  { "class_id": "class-research-lab", "room_id": "lab-401", "student_count": 21, "type": "lab" },
+  { "class_id": "class-library-seminar", "room_id": "library-main", "student_count": 45, "type": "library" },
+  { "class_id": "class-library-study", "room_id": "library-study", "student_count": 16, "type": "library" },
+  { "class_id": "class-admin-briefing", "room_id": "admin-office-01", "student_count": 5, "type": "admin" }
+]
