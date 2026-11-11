@@ -1,0 +1,5 @@
+[
+  { "building_id": "academic-east", "floor_number": 1, "room_ids": ["A101", "A102", "A103", "A104"] },
+  { "building_id": "academic-east", "floor_number": 2, "room_ids": ["A201", "A202", "A203", "A204", "lab-204"] },
+  { "building_id": "academic-east", "floor_number": 3, "room_ids": ["A301", "A302", "lab-301", "lab-302"] }
+]

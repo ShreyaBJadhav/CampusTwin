@@ -25,7 +25,7 @@ def test_dashboard_summary_success():
     response = client.get("/dashboard/summary")
 
     assert response.status_code == 200
-    assert response.json()["total_rooms"] == 12
+    assert response.json()["total_rooms"] == 15
     assert response.json()["total_buildings"] == 6
 
 
@@ -52,10 +52,17 @@ def test_what_if_simulation_success():
         "affected_count": 3,
         "unavailable_room_ids": ["classroom-101"],
         "reallocated": [
-            {"class_id": "class-001", "new_room_id": "classroom-102"},
+            {"class_id": "class-001", "new_room_id": "classroom-105"},
             {"class_id": "class-002", "new_room_id": "classroom-103"},
+            {"class_id": "class-003", "new_room_id": "classroom-102"},
         ],
-        "failed": [{"class_id": "class-003", "reason": "no suitable room"}],
+        "failed": [],
+        "impact": {
+            "students_affected": 75,
+            "students_reallocated": 75,
+            "students_unplaced": 0,
+            "reallocation_rate": 1.0,
+        },
     }
 
 
@@ -129,3 +136,63 @@ def test_cors_allows_role_a_dev_origin():
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_list_rooms_returns_data_source_records():
+    response = client.get("/rooms")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 15
+    assert response.json()[0] == {
+        "id": "classroom-101",
+        "building_id": "academic-east",
+        "type": "classroom",
+        "capacity": 40,
+        "occupancy": 12,
+    }
+
+
+def test_list_schedule_returns_data_source_records():
+    response = client.get("/schedule")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 13
+    assert response.json()[0] == {
+        "class_id": "class-001",
+        "room_id": "classroom-101",
+        "student_count": 12,
+        "type": "classroom",
+    }
+
+
+def test_health_check_returns_ok():
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_openapi_schema_contains_all_api_routes():
+    schema = client.get("/openapi.json").json()
+
+    assert set(schema["paths"]) == {
+        "/rooms/{room_id}/utilization",
+        "/dashboard/summary",
+        "/simulate/what-if",
+        "/allocation/alternative",
+        "/rooms",
+        "/schedule",
+        "/health",
+    }
+    assert schema["paths"]["/rooms/{room_id}/utilization"]["get"]["responses"]["200"][
+        "content"
+    ]["application/json"]["schema"]["$ref"] == "#/components/schemas/UtilizationResponse"
+    assert schema["paths"]["/dashboard/summary"]["get"]["responses"]["200"][
+        "content"
+    ]["application/json"]["schema"]["$ref"] == "#/components/schemas/DashboardSummaryResponse"
+    assert schema["paths"]["/simulate/what-if"]["post"]["responses"]["200"][
+        "content"
+    ]["application/json"]["schema"]["$ref"] == "#/components/schemas/WhatIfResponse"
+    assert schema["paths"]["/allocation/alternative"]["post"]["responses"]["200"][
+        "content"
+    ]["application/json"]["schema"]["anyOf"]

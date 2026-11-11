@@ -1,5 +1,6 @@
 import pytest
 
+from app.data_source import get_rooms, get_schedule
 from app.errors import NotFoundError
 from app.simulate import run_what_if
 
@@ -41,6 +42,12 @@ def test_run_what_if_reallocates_multiple_affected_classes():
             {"class_id": "class-2", "new_room_id": "alternative-large"},
         ],
         "failed": [],
+        "impact": {
+            "students_affected": 65,
+            "students_reallocated": 65,
+            "students_unplaced": 0,
+            "reallocation_rate": 1.0,
+        },
     }
 
 
@@ -72,7 +79,19 @@ def test_run_what_if_reports_classes_with_no_suitable_room():
         "reallocated": [
             {"class_id": "class-2", "new_room_id": "alternative"},
         ],
-        "failed": [{"class_id": "class-1", "reason": "no suitable room"}],
+        "failed": [
+            {
+                "class_id": "class-1",
+                "reason": "no suitable room",
+                "detail": "no room of this type",
+            }
+        ],
+        "impact": {
+            "students_affected": 55,
+            "students_reallocated": 20,
+            "students_unplaced": 35,
+            "reallocation_rate": 20 / 55,
+        },
     }
 
 
@@ -134,7 +153,39 @@ def test_run_what_if_handles_building_outage_across_multiple_rooms():
             {"class_id": "class-2", "new_room_id": "alternative-2"},
         ],
         "failed": [],
+        "impact": {
+            "students_affected": 60,
+            "students_reallocated": 60,
+            "students_unplaced": 0,
+            "reallocation_rate": 1.0,
+        },
     }
+
+
+def test_run_what_if_allocates_largest_scenario_two_class_first():
+    result = run_what_if(
+        get_rooms(),
+        get_schedule(),
+        unavailable_building_id="academic-east",
+    )
+
+    assert result["reallocated"] == [
+        {"class_id": "class-001", "new_room_id": "classroom-105"},
+        {"class_id": "class-003", "new_room_id": "classroom-103"},
+    ]
+    assert result["failed"] == [
+        {
+            "class_id": "class-002",
+            "reason": "no suitable room",
+            "detail": "all fitting rooms taken",
+        },
+        {
+            "class_id": "class-004",
+            "reason": "no suitable room",
+            "detail": "all fitting rooms taken",
+        },
+    ]
+    assert result["impact"]["students_reallocated"] == 47
 
 
 def test_run_what_if_does_not_double_book_alternative_rooms():
@@ -164,7 +215,19 @@ def test_run_what_if_does_not_double_book_alternative_rooms():
             {"class_id": "class-1", "new_room_id": "alternative-1"},
             {"class_id": "class-2", "new_room_id": "alternative-2"},
         ],
-        "failed": [{"class_id": "class-3", "reason": "no suitable room"}],
+        "failed": [
+            {
+                "class_id": "class-3",
+                "reason": "no suitable room",
+                "detail": "all fitting rooms taken",
+            }
+        ],
+        "impact": {
+            "students_affected": 105,
+            "students_reallocated": 70,
+            "students_unplaced": 35,
+            "reallocation_rate": 2 / 3,
+        },
     }
 
 
@@ -189,6 +252,12 @@ def test_run_what_if_prefers_non_overloaded_room():
         {"class_id": "class-1", "new_room_id": "larger-normal"},
     ]
     assert result["failed"] == []
+    assert result["impact"] == {
+        "students_affected": 15,
+        "students_reallocated": 15,
+        "students_unplaced": 0,
+        "reallocation_rate": 1.0,
+    }
 
 
 def test_run_what_if_uses_overloaded_room_when_it_is_the_only_fit():
@@ -212,6 +281,12 @@ def test_run_what_if_uses_overloaded_room_when_it_is_the_only_fit():
         {"class_id": "class-1", "new_room_id": "overloaded-fit"},
     ]
     assert result["failed"] == []
+    assert result["impact"] == {
+        "students_affected": 15,
+        "students_reallocated": 15,
+        "students_unplaced": 0,
+        "reallocation_rate": 1.0,
+    }
 
 
 def test_run_what_if_requires_exactly_one_outage_identifier():
@@ -255,6 +330,12 @@ def test_run_what_if_allows_existing_room_without_scheduled_classes():
         "unavailable_room_ids": ["room-1"],
         "reallocated": [],
         "failed": [],
+        "impact": {
+            "students_affected": 0,
+            "students_reallocated": 0,
+            "students_unplaced": 0,
+            "reallocation_rate": 0.0,
+        },
     }
 
 
@@ -268,4 +349,10 @@ def test_run_what_if_allows_existing_building_without_scheduled_classes():
         "unavailable_room_ids": ["room-1"],
         "reallocated": [],
         "failed": [],
+        "impact": {
+            "students_affected": 0,
+            "students_reallocated": 0,
+            "students_unplaced": 0,
+            "reallocation_rate": 0.0,
+        },
     }

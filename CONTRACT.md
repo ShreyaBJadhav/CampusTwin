@@ -126,7 +126,10 @@ find_alternative_room(
 
 ### `run_what_if(rooms: list[dict], schedule: list[dict], *, unavailable_room_id: str | None = None, unavailable_building_id: str | None = None) -> dict`
 
-Simulates a room outage or building outage. Exactly one of
+Simulates a room outage or building outage. Affected classes are processed in
+descending `student_count` order, preserving schedule order for equal counts.
+The returned `reallocated` and `failed` lists retain the original schedule
+order. Exactly one of
 `unavailable_room_id` and `unavailable_building_id` must be provided;
 otherwise the function raises `ValueError`. For a building outage, every room
 whose `building_id` matches is unavailable. Classes scheduled in the affected
@@ -142,9 +145,25 @@ Return shape:
     "affected_count": int,
     "unavailable_room_ids": list[str],
     "reallocated": list[{"class_id": str, "new_room_id": str}],
-    "failed": list[{"class_id": str, "reason": "no suitable room"}],
+    "failed": list[{
+        "class_id": str,
+        "reason": "no suitable room",
+        "detail": str,
+    }],
+    "impact": {
+        "students_affected": int,
+        "students_reallocated": int,
+        "students_unplaced": int,
+        "reallocation_rate": float,
+    },
 }
 ```
+
+`reallocation_rate` is the fraction of affected students who were reallocated
+(from `0.0` to `1.0`); it is `0.0` when no students were affected. Failed
+classes keep the fixed `reason` and receive a `detail` of `no room of this
+type` when no room of the required type and capacity exists, or `all fitting
+rooms taken` when suitable rooms existed but were already assigned.
 
 Example for a single-room outage using `classroom-101` and its schedule entries:
 
@@ -161,12 +180,17 @@ run_what_if(
     "affected_count": 3,
     "unavailable_room_ids": ["classroom-101"],
     "reallocated": [
-        {"class_id": "class-001", "new_room_id": "classroom-102"},
+        {"class_id": "class-001", "new_room_id": "classroom-105"},
         {"class_id": "class-002", "new_room_id": "classroom-103"},
+        {"class_id": "class-003", "new_room_id": "classroom-102"},
     ],
-    "failed": [
-        {"class_id": "class-003", "reason": "no suitable room"},
-    ],
+    "failed": [],
+    "impact": {
+        "students_affected": 75,
+        "students_reallocated": 75,
+        "students_unplaced": 0,
+        "reallocation_rate": 1.0,
+    },
 }
 ```
 
@@ -183,15 +207,33 @@ run_what_if(
 ```python
 {
     "affected_count": 4,
-    "unavailable_room_ids": ["classroom-101", "classroom-102"],
+    "unavailable_room_ids": [
+        "classroom-101",
+        "classroom-102",
+        "classroom-104",
+    ],
     "reallocated": [
-        {"class_id": "class-001", "new_room_id": "classroom-103"},
+        {"class_id": "class-001", "new_room_id": "classroom-105"},
+        {"class_id": "class-003", "new_room_id": "classroom-103"},
     ],
     "failed": [
-        {"class_id": "class-002", "reason": "no suitable room"},
-        {"class_id": "class-003", "reason": "no suitable room"},
-        {"class_id": "class-004", "reason": "no suitable room"},
+        {
+            "class_id": "class-002",
+            "reason": "no suitable room",
+            "detail": "all fitting rooms taken",
+        },
+        {
+            "class_id": "class-004",
+            "reason": "no suitable room",
+            "detail": "all fitting rooms taken",
+        },
     ],
+    "impact": {
+        "students_affected": 99,
+        "students_reallocated": 47,
+        "students_unplaced": 52,
+        "reallocation_rate": 0.47474747474747475,
+    },
 }
 ```
 
@@ -236,11 +278,11 @@ get_dashboard_summary(rooms)
 
 ```python
 {
-    "total_rooms": 12,
+    "total_rooms": 15,
     "total_buildings": 6,
     "status_counts": {
-        "low": 4,
-        "normal": 4,
+        "low": 6,
+        "normal": 5,
         "high": 1,
         "overloaded": 3,
     },
@@ -279,14 +321,28 @@ get_dashboard_summary(rooms)
 
 ## Known limitations
 
-- Allocation compares required student count with total room capacity, not
-  remaining free seats after current occupancy.
-- There are no time slots in the schedule records. Double-booking protection
-  applies only within a single simulation run and does not account for
-  conflicts across different times or separate runs.
-- Overloaded rooms are avoided where possible but may be used as a fallback
-  when no non-overloaded room fits. A larger room may therefore be chosen over
-  a smaller overloaded room.
+- Allocation compares the required student count with total room capacity,
+  not free seats after current occupancy, and the schedule has no time slots.
+  **Future fix:** track current occupancy and add time-slot fields to schedule
+  records so allocation can consider free capacity and simultaneous use.
+- The occupancy used to prefer non-overloaded rooms is a live “right now”
+  value, so it is only a soft preference; an overloaded room is still used
+  when it is the only fit.
+  **Future fix:** calculate availability for the scheduled time from
+  time-indexed occupancy data.
+- A small class can be assigned to a much larger room because a smaller
+  overloaded room is skipped when a non-overloaded alternative fits.
+  **Future fix:** once occupancy and schedules are time-aware, optimize
+  placement against available seats and minimize unused capacity.
+- Double-booking protection applies only within one `run_what_if` call.
+  **Future fix:** persist reservations and check them across simulation calls
+  for overlapping time slots.
+- Allocation is greedy: it picks the smallest sufficient eligible room for
+  each class in descending student-count order (ties retain schedule order),
+  so the result is not guaranteed to be optimal. Output lists retain schedule
+  order.
+  **Future fix:** evaluate allocations globally with an optimizer or
+  backtracking strategy.
 
 ## Edge cases and errors
 
@@ -346,7 +402,7 @@ TestClient response:
 TestClient response:
 
 ```json
-{"total_rooms":12,"total_buildings":6,"status_counts":{"low":4,"normal":4,"high":1,"overloaded":3},"overloaded_rooms":[{"id":"classroom-103","building_id":"academic-west","type":"classroom","capacity":40,"occupancy":38,"percentage":95.0,"status":"overloaded"},{"id":"library-quiet","building_id":"library-building","type":"library","capacity":30,"occupancy":28,"percentage":93.33333333333333,"status":"overloaded"},{"id":"admin-meeting","building_id":"administration","type":"admin","capacity":16,"occupancy":15,"percentage":93.75,"status":"overloaded"}],"skipped_rooms":[]}
+{"total_rooms":15,"total_buildings":6,"status_counts":{"low":6,"normal":5,"high":1,"overloaded":3},"overloaded_rooms":[{"id":"classroom-103","building_id":"academic-west","type":"classroom","capacity":40,"occupancy":38,"percentage":95.0,"status":"overloaded","warning":null},{"id":"library-quiet","building_id":"library-building","type":"library","capacity":30,"occupancy":28,"percentage":93.33333333333333,"status":"overloaded","warning":null},{"id":"admin-meeting","building_id":"administration","type":"admin","capacity":16,"occupancy":15,"percentage":93.75,"status":"overloaded","warning":null}],"skipped_rooms":[]}
 ```
 
 - **`400` if a `ValueError` or `TypeError` escapes the data source/API call:**
@@ -377,7 +433,7 @@ TestClient request:
 TestClient response:
 
 ```json
-{"affected_count":3,"unavailable_room_ids":["classroom-101"],"reallocated":[{"class_id":"class-001","new_room_id":"classroom-102"},{"class_id":"class-002","new_room_id":"classroom-103"}],"failed":[{"class_id":"class-003","reason":"no suitable room"}]}
+{"affected_count":3,"unavailable_room_ids":["classroom-101"],"reallocated":[{"class_id":"class-001","new_room_id":"classroom-105"},{"class_id":"class-002","new_room_id":"classroom-103"},{"class_id":"class-003","new_room_id":"classroom-102"}],"failed":[],"impact":{"students_affected":75,"students_reallocated":75,"students_unplaced":0,"reallocation_rate":1.0}}
 ```
 
 - **`404` unknown room or building ID (building example):**
