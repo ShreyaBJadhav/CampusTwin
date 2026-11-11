@@ -1,50 +1,82 @@
-# Role C: room utilization and scheduling
+# Campus Twin
 
-This project provides room-utilization calculations, alternative-room
-allocation, outage simulations, and a dashboard summary, with a FastAPI layer
-that exposes the functionality to the frontend. The current data source reads
-the JSON fixtures in `data/`; it can be replaced independently of the API
-routes.
+Campus Twin integrates the Role A React/Vite campus UI, the Role B
+FastAPI/SQLAlchemy/SQLite backend, and the Role C utilization, allocation,
+dashboard, and outage-simulation logic.
 
-## Setup on Windows
+## Run the full app (Windows PowerShell)
 
-From the project root in PowerShell, create and activate a virtual environment
-and install dependencies:
+Prerequisites: Python 3.10+ and Node.js/npm.
+
+### 1. Set up and start the backend
+
+In the first PowerShell terminal, from the repository root:
 
 ```powershell
-py -3.14 -m venv venv
-.\venv\Scripts\Activate.ps1
+Set-Location .\Role-B
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+python -m app.seed
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-## Run tests
+The backend API runs at `http://127.0.0.1:8000`; its interactive docs are at
+`http://127.0.0.1:8000/docs`.
+
+### 2. Configure and start the frontend
+
+In a second PowerShell terminal, from the repository root:
 
 ```powershell
+Set-Location ".\campus twin"
+npm install
+Copy-Item .env.example .env
+```
+
+Ensure `.env` contains:
+
+```dotenv
+VITE_USE_MOCK=false
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Then start Vite:
+
+```powershell
+npm run dev
+```
+
+Open `http://localhost:5173`. Do not commit `.env` or the SQLite database.
+
+## Tests and demo
+
+Run the backend tests:
+
+```powershell
+Set-Location .\Role-B
+.\.venv\Scripts\Activate.ps1
 python -m pytest -q
 ```
 
-## Run the demo
+Run the four Role C outage scenarios:
 
 ```powershell
+Set-Location .\Role-B
+.\.venv\Scripts\Activate.ps1
 python run_demo.py
 ```
 
-## Start the HTTP API
+## Project layout
 
-```powershell
-python -m uvicorn app.api:app --reload
-```
+- `Role-B/app/` — FastAPI application, SQLAlchemy models, and Role C logic
+  under `Role-B/app/logic/`.
+- `Role-B/data/` — canonical room and schedule fixtures used by the seeder.
+- `Role-B/tests/` — backend and Role C tests.
+- `campus twin/` — React/Vite frontend.
+- `docs/CONTRACT.md` — Python logic and HTTP API contract, with examples
+  captured from the running API.
 
-The API base URL is `http://localhost:8000`. Interactive API documentation is
-available at `http://localhost:8000/docs`.
-
-## Role C module map
-
-- `app/utilization.py` — calculates room utilization percentage and status.
-- `app/allocation.py` — finds an alternative room with sufficient capacity.
-- `app/simulate.py` — simulates a room or building outage and class
-  reallocations.
-- `app/dashboard.py` — summarizes room counts and utilization statuses.
-- `app/api.py` — exposes the logic through HTTP endpoints.
-- `app/data_source.py` — loads room and schedule data for the API; replace
-  these functions to connect a database.
+`Role-B/requirements.txt` is the canonical Python dependency list, including
+`pytest` and `httpx`.

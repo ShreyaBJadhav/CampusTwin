@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from app.simulate import run_what_if
+from app.logic.simulate import run_what_if
 
 
 def print_scenario(
